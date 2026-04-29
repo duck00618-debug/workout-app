@@ -464,13 +464,51 @@ function WorkoutView({ log, plan, dayIdx, onFinish, onTutorial }: { log: Workout
 }
 
 // ── Exercise Tutorial ─────────────────────────────────────────
+type GuideData = { muscles: string[]; steps: string[]; tips: string[]; mistakes: string[] };
+
 function ExerciseTutorial({ name, onClose }: { name: string; onClose: () => void }) {
-  const query = encodeURIComponent(`${name} 正確動作教學`);
-  const src = `https://www.youtube.com/embed?listType=search&list=${query}&autoplay=1`;
+  const [guide, setGuide] = useState<GuideData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    setLoading(true);
+    setError('');
+    fetch('/api/exercise-guide', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) throw new Error(data.error);
+        setGuide(data);
+      })
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [name]);
+
+  const Section = ({ emoji, title, items, color }: { emoji: string; title: string; items: string[]; color: string }) => (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+        <span style={{ fontSize: 16 }}>{emoji}</span>
+        <span style={{ fontWeight: 700, fontSize: 14, color }}>{title}</span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {items.map((item, i) => (
+          <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <span style={{ minWidth: 22, height: 22, borderRadius: 6, background: `${color}22`, color, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+              {i + 1}
+            </span>
+            <span style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--text)' }}>{item}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'var(--background)', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <div>
           <div style={{ fontWeight: 700, fontSize: 17 }}>{name}</div>
@@ -482,19 +520,45 @@ function ExerciseTutorial({ name, onClose }: { name: string; onClose: () => void
         </button>
       </div>
 
-      {/* Video */}
-      <div style={{ flex: 1, background: '#000' }}>
-        <iframe
-          src={src}
-          style={{ width: '100%', height: '100%', border: 'none' }}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
-      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px' }}>
+        {loading && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: 16 }}>
+            <div style={{ width: 40, height: 40, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <span style={{ color: 'var(--muted)', fontSize: 14 }}>AI 正在生成教學…</span>
+          </div>
+        )}
 
-      {/* Tip */}
-      <div style={{ padding: '12px 16px', fontSize: 12, color: 'var(--muted)', textAlign: 'center', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-        點選影片縮圖觀看完整教學
+        {error && (
+          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <p style={{ color: 'var(--muted)', marginBottom: 16 }}>載入失敗，請再試一次</p>
+            <button className="btn btn-primary" onClick={() => {
+              setLoading(true); setError('');
+              fetch('/api/exercise-guide', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) })
+                .then(r => r.json()).then(d => { if (d.error) throw new Error(d.error); setGuide(d); }).catch(e => setError(e.message)).finally(() => setLoading(false));
+            }}>重新載入</button>
+          </div>
+        )}
+
+        {guide && !loading && (
+          <div className="animate-fadein">
+            {/* Muscle tags */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                <span style={{ fontSize: 16 }}>💪</span>
+                <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--accent)' }}>目標肌群</span>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {guide.muscles.map((m, i) => (
+                  <span key={i} className="badge" style={{ background: 'rgba(108,99,255,0.15)', color: 'var(--accent)', padding: '6px 12px', fontSize: 13, borderRadius: 20 }}>{m}</span>
+                ))}
+              </div>
+            </div>
+
+            <Section emoji="📋" title="動作步驟" items={guide.steps} color="var(--accent)" />
+            <Section emoji="⭐" title="重點提示" items={guide.tips} color="var(--green)" />
+            <Section emoji="⚠️" title="常見錯誤" items={guide.mistakes} color="#ff6584" />
+          </div>
+        )}
       </div>
     </div>
   );
