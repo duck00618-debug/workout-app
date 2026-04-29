@@ -31,6 +31,8 @@ export interface WorkoutPlan {
   split: string;
   trainingGoal: 'hypertrophy' | 'strength' | 'endurance';
   level: 'beginner' | 'intermediate' | 'advanced';
+  equipment?: EquipmentType;
+  includeCardio?: boolean;
   schedule: WorkoutDay[];
   createdAt: string;
 }
@@ -76,3 +78,5 @@ export type TrainingSplit =
   | 'fullBody'
   | 'chestBack'
   | 'bro';
+
+export type EquipmentType = 'gym' | 'dumbbells' | 'bodyweight';

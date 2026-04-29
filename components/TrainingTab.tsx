@@ -5,7 +5,8 @@ import { getUser, getActivePlan, savePlan, setActivePlan, getLogs, saveLog } fro
 import { WorkoutPlan, WorkoutLog, UserProfile } from '@/lib/types';
 import { generatePlan } from '@/lib/workout-generator';
 import { today } from '@/lib/calculations';
-import { Dumbbell, Plus, ChevronRight, CheckCircle, Circle, Zap } from 'lucide-react';
+import { Dumbbell, Plus, ChevronRight, CheckCircle, Circle, Zap, Home, Wind } from 'lucide-react';
+import { EquipmentType } from '@/lib/types';
 
 type View = 'overview' | 'create' | 'workout';
 
@@ -97,6 +98,14 @@ export default function TrainingTab() {
                   <span className="badge" style={{ background: 'rgba(0,212,170,0.1)', color: 'var(--green)' }}>
                     {{ beginner: '新手', intermediate: '中階', advanced: '進階' }[plan.level]}
                   </span>
+                  {plan.equipment && (
+                    <span className="badge" style={{ background: 'rgba(255,165,0,0.1)', color: '#ffa500' }}>
+                      {{ gym: '🏋️ 健身房', dumbbells: '💪 啞鈴', bodyweight: '🏠 徒手' }[plan.equipment]}
+                    </span>
+                  )}
+                  {plan.includeCardio && (
+                    <span className="badge" style={{ background: 'rgba(255,101,132,0.1)', color: '#ff6584' }}>有氧</span>
+                  )}
                 </div>
               </div>
               <button className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: 12 }} onClick={() => setView('create')}>更換</button>
@@ -163,6 +172,8 @@ function CreatePlanView({ user, onCreated, onBack }: { user: UserProfile | null;
   const [split, setSplit] = useState('PPL');
   const [trainingGoal, setTrainingGoal] = useState<'hypertrophy' | 'strength' | 'endurance'>('hypertrophy');
   const [level, setLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
+  const [equipment, setEquipment] = useState<EquipmentType>('gym');
+  const [includeCardio, setIncludeCardio] = useState(false);
 
   const splits = [
     { v: 'fullBody',   l: '全身訓練',     d: '每次練全身，每週 3 次 — 新手首選' },
@@ -185,7 +196,7 @@ function CreatePlanView({ user, onCreated, onBack }: { user: UserProfile | null;
   ];
 
   const generate = () => {
-    const partial = generatePlan(split, trainingGoal, level);
+    const partial = generatePlan(split, trainingGoal, level, equipment, includeCardio);
     const plan: WorkoutPlan = {
       ...partial,
       id: `plan_${Date.now()}`,
@@ -239,6 +250,45 @@ function CreatePlanView({ user, onCreated, onBack }: { user: UserProfile | null;
             {trainingGoal === 'strength' && '💡 低次數、高重量，專注在提升最大力量'}
             {trainingGoal === 'endurance' && '💡 高次數、輕重量，提升肌肉持久度'}
           </div>
+        </div>
+
+        {/* Equipment */}
+        <div>
+          <label style={{ fontSize: 13, color: 'var(--muted)', display: 'block', marginBottom: 10 }}>訓練環境</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {([
+              { v: 'gym'        as EquipmentType, l: '健身房', sub: '完整器材：槓鈴、機器、啞鈴都有', icon: '🏋️' },
+              { v: 'dumbbells'  as EquipmentType, l: '啞鈴居家', sub: '只有啞鈴，適合在家訓練', icon: '💪' },
+              { v: 'bodyweight' as EquipmentType, l: '徒手居家', sub: '完全不需器材，隨時隨地可練', icon: '🏠' },
+            ]).map(e => (
+              <button key={e.v} onClick={() => setEquipment(e.v)}
+                style={{ padding: '12px 14px', borderRadius: 12, border: `2px solid ${equipment === e.v ? 'var(--accent)' : 'var(--border)'}`, background: equipment === e.v ? 'rgba(108,99,255,0.15)' : 'var(--surface)', textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <span style={{ fontWeight: 700, color: equipment === e.v ? 'var(--accent)' : 'var(--text)', marginRight: 8 }}>{e.icon} {e.l}</span>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{e.sub}</div>
+                </div>
+                {equipment === e.v && <CheckCircle size={18} color="var(--accent)" />}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Cardio */}
+        <div>
+          <label style={{ fontSize: 13, color: 'var(--muted)', display: 'block', marginBottom: 10 }}>有氧訓練</label>
+          <button onClick={() => setIncludeCardio(v => !v)}
+            style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: `2px solid ${includeCardio ? 'var(--accent)' : 'var(--border)'}`, background: includeCardio ? 'rgba(108,99,255,0.15)' : 'var(--surface)', textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Wind size={18} color={includeCardio ? 'var(--accent)' : 'var(--muted)'} />
+              <div>
+                <div style={{ fontWeight: 700, color: includeCardio ? 'var(--accent)' : 'var(--text)', fontSize: 14 }}>加入有氧</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>每次訓練結尾加入 20-30 分鐘有氧</div>
+              </div>
+            </div>
+            <div style={{ width: 44, height: 24, borderRadius: 12, background: includeCardio ? 'var(--accent)' : 'var(--border)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+              <div style={{ position: 'absolute', top: 2, left: includeCardio ? 22 : 2, width: 20, height: 20, borderRadius: 10, background: 'white', transition: 'left 0.2s' }} />
+            </div>
+          </button>
         </div>
 
         {/* Level */}
