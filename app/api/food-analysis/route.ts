@@ -1,70 +1,48 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextRequest, NextResponse } from 'next/server';
 
-const JSON_SCHEMA = `{
-  "name": "食物名稱（簡短）",
-  "amount": "份量描述",
+const PROMPT_SUFFIX = `
+用 JSON 格式回覆（只輸出 JSON，不要任何其他文字）：
+{
+  "name": "食物名稱（繁體中文，簡短）",
+  "amount": "份量描述（例如：1碗、1個、500ml）",
   "calories": 數字（大卡）,
   "protein": 數字（克）,
   "carbs": 數字（克）,
   "fat": 數字（克）
-}`;
+}
 
-const JSON_NOTES = `注意：
-1. 依照台灣一般餐廳的正常份量估算
-2. 數字取整數
-3. 盡量精確，蛋白質/碳水/脂肪的熱量要合理（protein*4 + carbs*4 + fat*9 ≈ calories）`;
+規則：以台灣一般餐廳或便利商店份量估算，數字取整數，protein×4 + carbs×4 + fat×9 ≈ calories。`;
 
 export async function POST(req: NextRequest) {
   const { input, image, apiKey } = await req.json();
 
-  const key = apiKey || process.env.ANTHROPIC_API_KEY;
+  const key = apiKey || process.env.GOOGLE_AI_API_KEY;
   if (!key) {
     return NextResponse.json({ error: 'No API key' }, { status: 400 });
   }
 
-  const client = new Anthropic({ apiKey: key });
+  const genAI = new GoogleGenerativeAI(key);
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
   try {
-    let message;
+    let result;
 
     if (image) {
       const match = (image as string).match(/^data:([^;]+);base64,(.+)$/);
       if (!match) return NextResponse.json({ error: 'Invalid image' }, { status: 400 });
 
-      const mediaType = match[1] as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
-      const base64Data = match[2];
-
-      message = await client.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 400,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data } },
-            { type: 'text', text: `你是一位熟悉台灣飲食的營養師。請仔細觀察這張照片中的食物，辨識出主要食物名稱，並估算熱量與營養素。
-
-用 JSON 格式回覆（只輸出 JSON，不要任何其他文字或說明）：
-${JSON_SCHEMA}
-
-重要規則：
-1. name 請用繁體中文，簡短描述（例如：滷肉飯、雞腿便當、珍珠奶茶）
-2. amount 描述份量（例如：1碗、1個、500ml）
-3. 以台灣一般餐廳或便利商店的正常份量估算
-4. 若照片模糊或看不清楚，仍需盡力估算，不要拒絕回答
-5. 數字取整數，確保 protein×4 + carbs×4 + fat×9 ≈ calories` },
-          ],
-        }],
-      });
+      result = await model.generateContent([
+        { inlineData: { mimeType: match[1], data: match[2] } },
+        `你是一位熟悉台灣飲食的營養師。請仔細觀察照片中的食物，辨識出主要食物並估算熱量與營養素。若看不清楚仍需盡力估算。${PROMPT_SUFFIX}`,
+      ]);
     } else {
-      message = await client.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 400,
-        messages: [{ role: 'user', content: `你是一位營養師，使用者說他吃了：「${input}」\n\n請估算這份食物的營養資訊，用 JSON 格式回覆（只輸出 JSON，不要其他文字）：\n${JSON_SCHEMA}\n\n注意：\n1. 如果使用者沒有說份量，依照台灣一般餐廳的正常份量估算\n2. 數字取整數\n3. 盡量精確，蛋白質/碳水/脂肪的熱量要合理（protein*4 + carbs*4 + fat*9 ≈ calories）` }],
-      });
+      result = await model.generateContent(
+        `你是一位熟悉台灣飲食的營養師。使用者說他吃了：「${input}」，請估算熱量與營養素，若未說明份量則依台灣一般份量估算。${PROMPT_SUFFIX}`
+      );
     }
 
-    const text = (message.content[0] as { type: string; text: string }).text;
+    const text = result.response.text();
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('No JSON');
 

@@ -326,7 +326,7 @@ export default function DietTab() {
             <div className="card animate-fadein" style={{ padding: '20px' }}>
               <p style={{ fontWeight: 700, marginBottom: 8, color: 'var(--accent2)' }}>功能尚未啟用</p>
               <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
-                請到 Vercel 後台設定 <code style={{ background: 'var(--surface2)', padding: '2px 6px', borderRadius: 4 }}>ANTHROPIC_API_KEY</code> 環境變數後重新部署。
+                請到 Vercel 後台設定 <code style={{ background: 'var(--surface2)', padding: '2px 6px', borderRadius: 4 }}>GOOGLE_AI_API_KEY</code> 環境變數後重新部署。
               </p>
               <button className="btn btn-ghost" onClick={resetPhoto} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <RefreshCw size={15} /> 返回
