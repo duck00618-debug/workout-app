@@ -466,98 +466,64 @@ function WorkoutView({ log, plan, dayIdx, onFinish, onTutorial }: { log: Workout
 // ── Exercise Tutorial ─────────────────────────────────────────
 type GuideData = { muscles: string[]; steps: string[]; tips: string[]; mistakes: string[] };
 
-const ZH_TO_EN: Record<string, string> = {
-  // Chest
-  '槓鈴臥推': 'Barbell Bench Press', '啞鈴臥推': 'Dumbbell Bench Press',
-  '上斜啞鈴臥推': 'Incline Dumbbell Press', '啞鈴飛鳥': 'Dumbbell Flyes',
-  '伏地挺身': 'Pushups', '上斜伏地挺身': 'Incline Push-Up',
-  '菱形伏地挺身': 'Diamond Push-Up', '蝴蝶機夾胸': 'Pec Deck Fly',
-  '下斜臥推': 'Decline Barbell Bench Press',
-  // Back
-  '引體向上': 'Pull-ups', '反手引體向上': 'Chin-up',
-  '滑輪下拉': 'Wide-Grip Lat Pulldown', '坐姿划船': 'Seated Cable Rows',
-  '啞鈴單臂划船': 'One-Arm Dumbbell Row', '俯身啞鈴划船': 'Bent Over Two-Arm Long Bar Row',
-  '槓鈴硬舉': 'Barbell Deadlift', '直腿硬舉': 'Stiff-Legged Barbell Deadlift',
-  '反手滑輪下拉': 'Underhand Cable Pulldowns',
-  // Shoulder
-  '啞鈴肩推': 'Dumbbell Shoulder Press', '槓鈴站姿肩推': 'Barbell Shoulder Press',
-  '側平舉': 'Side Lateral Raise', '前平舉': 'Front Dumbbell Raise',
-  '面拉': 'Face Pull', '俯身側平舉': 'Bent-Over Dumbbell Rear Delt Raise',
-  '啞鈴聳肩': 'Dumbbell Shrug', '派克伏地挺身': 'Pike Push-up',
-  // Biceps
-  '站姿槓鈴彎舉': 'Barbell Curl', '啞鈴交替彎舉': 'Alternating Dumbbell Curl',
-  '錘式彎舉': 'Hammer Curls', '集中彎舉': 'Concentration Curls', '繩索彎舉': 'Cable Curl',
-  // Triceps
-  '繩索三頭下壓': 'Triceps Pushdown', '仰臥三頭伸展': 'Lying Triceps Press',
-  '過頭三頭伸展': 'Overhead Tricep Extension', '雙槓撐體': 'Dips - Triceps Version',
-  '窄距伏地挺身': 'Close-Grip Push-up', '窄距臥推': 'Close-Grip Barbell Bench Press',
-  // Legs
-  '槓鈴深蹲': 'Barbell Full Squat', '腿推機': 'Leg Press',
-  '羅馬尼亞硬舉': 'Romanian Deadlift', '腿彎舉': 'Lying Leg Curls',
-  '腿伸展': 'Leg Extensions', '啞鈴弓箭步': 'Dumbbell Lunges',
-  '保加利亞分腿蹲': 'Barbell Bulgarian Split Squat', '深蹲': 'Bodyweight Squat',
-  '弓箭步': 'Lunge', '站姿小腿提踵': 'Standing Calf Raise',
-  // Glutes
-  '槓鈴臀推': 'Barbell Hip Thrust', '啞鈴臀推': 'Hip Thrust',
-  '繩索後踢': 'Cable Hip Extension', '髖外展機': 'Hip Abduction',
-  '相撲深蹲': 'Sumo Squat', '驢子踢腿': 'Donkey Kick',
-  '消防栓式': 'Fire Hydrant', '蚌殼式': 'Clamshell',
-  '臀橋': 'Glute Bridge', '單腳臀橋': 'Single-Leg Glute Bridge',
-  // Abs
-  '捲腹': 'Crunch', '平板支撐': 'Plank',
-  '懸垂抬腿': 'Hanging Leg Raise', '俄羅斯轉體': 'Russian Twist',
-  '山式爬行': 'Mountain Climbers',
+// wger muscle IDs + which body view they appear on
+// SVGs served from wger.de static files (Wikimedia Commons origin, CC BY 3.0)
+const WGER_BASE = 'https://wger.de/static/images/muscles';
+type MuscleView = 'front' | 'back';
+const MUSCLE_IDS: Record<string, { id: number; view: MuscleView }> = {
+  '胸大肌': { id: 4, view: 'front' }, '上胸': { id: 4, view: 'front' },
+  '下胸': { id: 4, view: 'front' }, '前鋸肌': { id: 3, view: 'front' },
+  '三角肌': { id: 2, view: 'front' }, '三角肌前束': { id: 2, view: 'front' },
+  '三角肌側束': { id: 2, view: 'front' }, '後三角肌': { id: 2, view: 'back' },
+  '後三角/斜方': { id: 2, view: 'back' }, '二頭肌': { id: 1, view: 'front' },
+  '二頭肌/肱肌': { id: 1, view: 'front' }, '三頭肌': { id: 5, view: 'back' },
+  '三頭肌長頭': { id: 5, view: 'back' }, '背闊肌': { id: 12, view: 'back' },
+  '中背部': { id: 12, view: 'back' }, '全背部': { id: 12, view: 'back' },
+  '斜方肌': { id: 9, view: 'back' }, '股四頭肌': { id: 10, view: 'front' },
+  '股四頭肌/臀部': { id: 10, view: 'front' }, '腿後腱': { id: 11, view: 'back' },
+  '下背/腿後腱': { id: 11, view: 'back' }, '臀大肌': { id: 8, view: 'back' },
+  '臀中肌': { id: 8, view: 'back' }, '小腿': { id: 7, view: 'back' },
+  '腹直肌': { id: 6, view: 'front' }, '核心': { id: 6, view: 'front' },
+  '下腹部': { id: 6, view: 'front' }, '腹斜肌': { id: 6, view: 'front' },
 };
 
-const EX_DB_URL = 'https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/dist/exercises.json';
-const EX_IMG_BASE = 'https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/';
-const EX_CACHE_KEY = 'ex_db_v2';
+function MuscleDiagram({ muscles }: { muscles: string[] }) {
+  const hits = muscles.map(m => MUSCLE_IDS[m]).filter(Boolean);
+  const frontIds = [...new Set(hits.filter(h => h.view === 'front').map(h => h.id))];
+  const backIds  = [...new Set(hits.filter(h => h.view === 'back').map(h => h.id))];
+  const showFront = frontIds.length > 0;
+  const showBack  = backIds.length > 0;
+  if (!showFront && !showBack) return null;
 
-type ExRow = { name: string; images: string[] };
+  const Panel = ({ view, ids }: { view: MuscleView; ids: number[] }) => (
+    <div style={{ flex: 1, position: 'relative' }}>
+      <img src={`${WGER_BASE}/muscular_system_${view}.svg`} alt={view}
+        style={{ width: '100%', display: 'block', filter: 'grayscale(100%) brightness(0.85)' }} />
+      {ids.map(id => (
+        <img key={id} src={`${WGER_BASE}/main/muscle-${id}.svg`} alt=""
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
+      ))}
+    </div>
+  );
 
-async function findExerciseImages(chineseName: string): Promise<string[]> {
-  const englishName = ZH_TO_EN[chineseName] ?? '';
-  if (!englishName) return [];
-
-  let db: ExRow[] = [];
-  try {
-    const raw = localStorage.getItem(EX_CACHE_KEY);
-    if (raw) {
-      const { ts, data } = JSON.parse(raw);
-      if (Date.now() - ts < 7 * 24 * 60 * 60 * 1000) db = data;
-    }
-  } catch {}
-
-  if (!db.length) {
-    try {
-      const res = await fetch(EX_DB_URL);
-      const full: { name: string; images: string[] }[] = await res.json();
-      db = full.map(e => ({ name: e.name, images: e.images ?? [] }));
-      try { localStorage.setItem(EX_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: db })); } catch {}
-    } catch { return []; }
-  }
-
-  const q = englishName.toLowerCase();
-  const score = (e: ExRow) => {
-    const n = e.name.toLowerCase();
-    if (n === q) return 10;
-    const words = q.split(' ').filter(w => w.length > 2);
-    return words.filter(w => n.includes(w)).length / words.length;
-  };
-  const best = db.reduce<{ e: ExRow | null; s: number }>((acc, e) => {
-    const s = score(e); return s > acc.s ? { e, s } : acc;
-  }, { e: null, s: 0 });
-
-  if (!best.e || best.s < 0.5) return [];
-  return (best.e.images ?? []).slice(0, 2).map(img => `${EX_IMG_BASE}${img}`);
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: 'flex', gap: 8, background: 'var(--surface2)', borderRadius: 14, padding: 12 }}>
+        {showFront && <Panel view="front" ids={frontIds} />}
+        {showBack  && <Panel view="back"  ids={backIds} />}
+      </div>
+      <div style={{ fontSize: 10, color: 'var(--muted)', textAlign: 'right', marginTop: 4 }}>
+        Muscle diagram · wger project · CC BY 3.0
+      </div>
+    </div>
+  );
 }
+
 
 function ExerciseTutorial({ name, onClose }: { name: string; onClose: () => void }) {
   const [guide, setGuide] = useState<GuideData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [images, setImages] = useState<string[]>([]);
-
   useEffect(() => {
     setLoading(true);
     setError('');
@@ -570,7 +536,6 @@ function ExerciseTutorial({ name, onClose }: { name: string; onClose: () => void
       .then(data => {
         if (data.error) throw new Error(data.error);
         setGuide(data);
-        findExerciseImages(name).then(imgs => setImages(imgs));
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
@@ -631,24 +596,7 @@ function ExerciseTutorial({ name, onClose }: { name: string; onClose: () => void
 
         {guide && !loading && (
           <div className="animate-fadein">
-            {/* Comic-style exercise images */}
-            {images.length > 0 && (
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${images.length}, 1fr)`, gap: 6, borderRadius: 14, overflow: 'hidden', border: '2px solid var(--border)' }}>
-                  {images.map((src, i) => (
-                    <div key={i} style={{ position: 'relative', background: '#111' }}>
-                      <img src={src} alt={`${name} step ${i + 1}`}
-                        style={{ width: '100%', display: 'block', aspectRatio: '1', objectFit: 'cover', filter: 'grayscale(100%) contrast(1.1)' }}
-                      />
-                      <div style={{ position: 'absolute', top: 6, left: 6, width: 20, height: 20, borderRadius: '50%', background: 'var(--accent)', color: '#fff', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {i + 1}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ fontSize: 10, color: 'var(--muted)', textAlign: 'right', marginTop: 4 }}>free-exercise-db · MIT</div>
-              </div>
-            )}
+            <MuscleDiagram muscles={guide.muscles} />
 
             {/* Muscle tags */}
             <div style={{ marginBottom: 20 }}>
