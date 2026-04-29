@@ -5,7 +5,7 @@ import { getUser, getActivePlan, savePlan, setActivePlan, getLogs, saveLog } fro
 import { WorkoutPlan, WorkoutLog, UserProfile } from '@/lib/types';
 import { generatePlan } from '@/lib/workout-generator';
 import { today } from '@/lib/calculations';
-import { Dumbbell, Plus, ChevronRight, CheckCircle, Circle, Zap, Home, Wind } from 'lucide-react';
+import { Dumbbell, Plus, ChevronRight, CheckCircle, Circle, Zap, Home, Wind, PlayCircle, X } from 'lucide-react';
 import { EquipmentType } from '@/lib/types';
 
 type View = 'overview' | 'create' | 'workout';
@@ -16,6 +16,7 @@ export default function TrainingTab() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [activeLog, setActiveLog] = useState<WorkoutLog | null>(null);
   const [activeDayIdx, setActiveDayIdx] = useState(0);
+  const [tutorialEx, setTutorialEx] = useState<string | null>(null);
 
   useEffect(() => {
     setUser(getUser());
@@ -57,6 +58,11 @@ export default function TrainingTab() {
   };
 
   if (view === 'create') return <CreatePlanView user={user} onCreated={onPlanCreated} onBack={() => setView('overview')} />;
+
+  if (tutorialEx) return (
+    <ExerciseTutorial name={tutorialEx} onClose={() => setTutorialEx(null)} />
+  );
+
   if (view === 'workout' && activeLog && plan) {
     return (
       <WorkoutView
@@ -64,6 +70,7 @@ export default function TrainingTab() {
         plan={plan}
         dayIdx={activeDayIdx}
         onFinish={() => { setPlan(getActivePlan()); setView('overview'); }}
+        onTutorial={setTutorialEx}
       />
     );
   }
@@ -150,8 +157,12 @@ export default function TrainingTab() {
                   {!isRest && (
                     <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
                       {day.exercises.map((ex, ei) => (
-                        <div key={ei} style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 3, display: 'flex', justifyContent: 'space-between' }}>
-                          <span>{ex.name}</span>
+                        <div key={ei} style={{ fontSize: 12, marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <button onClick={() => setTutorialEx(ex.name)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4, padding: 0, textAlign: 'left' }}>
+                            <PlayCircle size={13} />
+                            {ex.name}
+                          </button>
                           <span style={{ color: 'var(--text)', fontWeight: 600 }}>{ex.sets} 組 × {ex.reps}</span>
                         </div>
                       ))}
@@ -316,7 +327,7 @@ function CreatePlanView({ user, onCreated, onBack }: { user: UserProfile | null;
 }
 
 // ── Workout Logging ──────────────────────────────────────────
-function WorkoutView({ log, plan, dayIdx, onFinish }: { log: WorkoutLog; plan: WorkoutPlan; dayIdx: number; onFinish: () => void }) {
+function WorkoutView({ log, plan, dayIdx, onFinish, onTutorial }: { log: WorkoutLog; plan: WorkoutPlan; dayIdx: number; onFinish: () => void; onTutorial: (name: string) => void }) {
   const [currentLog, setCurrentLog] = useState<WorkoutLog>(log);
   const day = plan.schedule[dayIdx];
 
@@ -388,7 +399,13 @@ function WorkoutView({ log, plan, dayIdx, onFinish }: { log: WorkoutLog; plan: W
           return (
             <div key={exIdx} className="card">
               <div style={{ marginBottom: 12 }}>
-                <div style={{ fontWeight: 700, fontSize: 16 }}>{ex.name}</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ fontWeight: 700, fontSize: 16 }}>{ex.name}</div>
+                  <button onClick={() => onTutorial(ex.name)}
+                    style={{ background: 'rgba(108,99,255,0.12)', border: 'none', borderRadius: 8, cursor: 'pointer', color: 'var(--accent)', padding: '5px 10px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <PlayCircle size={13} /> 教學
+                  </button>
+                </div>
                 <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
                   目標：{planEx?.sets} 組 × {planEx?.reps} 下 · 休息 {planEx?.restSeconds}s
                 </div>
@@ -442,6 +459,43 @@ function WorkoutView({ log, plan, dayIdx, onFinish }: { log: WorkoutLog; plan: W
       <button className="btn btn-primary" onClick={finish} style={{ width: '100%', marginTop: 20 }}>
         <CheckCircle size={18} /> 完成今日訓練 💪
       </button>
+    </div>
+  );
+}
+
+// ── Exercise Tutorial ─────────────────────────────────────────
+function ExerciseTutorial({ name, onClose }: { name: string; onClose: () => void }) {
+  const query = encodeURIComponent(`${name} 正確動作教學`);
+  const src = `https://www.youtube.com/embed?listType=search&list=${query}&autoplay=1`;
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'var(--background)', display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 17 }}>{name}</div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>動作教學</div>
+        </div>
+        <button onClick={onClose}
+          style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--surface2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)' }}>
+          <X size={18} />
+        </button>
+      </div>
+
+      {/* Video */}
+      <div style={{ flex: 1, background: '#000' }}>
+        <iframe
+          src={src}
+          style={{ width: '100%', height: '100%', border: 'none' }}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+
+      {/* Tip */}
+      <div style={{ padding: '12px 16px', fontSize: 12, color: 'var(--muted)', textAlign: 'center', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
+        點選影片縮圖觀看完整教學
+      </div>
     </div>
   );
 }
