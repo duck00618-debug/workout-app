@@ -596,8 +596,6 @@ function ExerciseTutorial({ name, onClose }: { name: string; onClose: () => void
 
         {guide && !loading && (
           <div className="animate-fadein">
-            <MuscleDiagram muscles={guide.muscles} />
-
             {/* Muscle tags */}
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
