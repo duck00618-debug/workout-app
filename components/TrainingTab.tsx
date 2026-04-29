@@ -464,21 +464,67 @@ function WorkoutView({ log, plan, dayIdx, onFinish, onTutorial }: { log: Workout
 }
 
 // ── Exercise Tutorial ─────────────────────────────────────────
-type GuideData = { englishName?: string; muscles: string[]; steps: string[]; tips: string[]; mistakes: string[] };
+type GuideData = { muscles: string[]; steps: string[]; tips: string[]; mistakes: string[] };
+
+const ZH_TO_EN: Record<string, string> = {
+  // Chest
+  '槓鈴臥推': 'Barbell Bench Press', '啞鈴臥推': 'Dumbbell Bench Press',
+  '上斜啞鈴臥推': 'Incline Dumbbell Press', '啞鈴飛鳥': 'Dumbbell Flyes',
+  '伏地挺身': 'Pushups', '上斜伏地挺身': 'Incline Push-Up',
+  '菱形伏地挺身': 'Diamond Push-Up', '蝴蝶機夾胸': 'Pec Deck Fly',
+  '下斜臥推': 'Decline Barbell Bench Press',
+  // Back
+  '引體向上': 'Pull-ups', '反手引體向上': 'Chin-up',
+  '滑輪下拉': 'Wide-Grip Lat Pulldown', '坐姿划船': 'Seated Cable Rows',
+  '啞鈴單臂划船': 'One-Arm Dumbbell Row', '俯身啞鈴划船': 'Bent Over Two-Arm Long Bar Row',
+  '槓鈴硬舉': 'Barbell Deadlift', '直腿硬舉': 'Stiff-Legged Barbell Deadlift',
+  '反手滑輪下拉': 'Underhand Cable Pulldowns',
+  // Shoulder
+  '啞鈴肩推': 'Dumbbell Shoulder Press', '槓鈴站姿肩推': 'Barbell Shoulder Press',
+  '側平舉': 'Side Lateral Raise', '前平舉': 'Front Dumbbell Raise',
+  '面拉': 'Face Pull', '俯身側平舉': 'Bent-Over Dumbbell Rear Delt Raise',
+  '啞鈴聳肩': 'Dumbbell Shrug', '派克伏地挺身': 'Pike Push-up',
+  // Biceps
+  '站姿槓鈴彎舉': 'Barbell Curl', '啞鈴交替彎舉': 'Alternating Dumbbell Curl',
+  '錘式彎舉': 'Hammer Curls', '集中彎舉': 'Concentration Curls', '繩索彎舉': 'Cable Curl',
+  // Triceps
+  '繩索三頭下壓': 'Triceps Pushdown', '仰臥三頭伸展': 'Lying Triceps Press',
+  '過頭三頭伸展': 'Overhead Tricep Extension', '雙槓撐體': 'Dips - Triceps Version',
+  '窄距伏地挺身': 'Close-Grip Push-up', '窄距臥推': 'Close-Grip Barbell Bench Press',
+  // Legs
+  '槓鈴深蹲': 'Barbell Full Squat', '腿推機': 'Leg Press',
+  '羅馬尼亞硬舉': 'Romanian Deadlift', '腿彎舉': 'Lying Leg Curls',
+  '腿伸展': 'Leg Extensions', '啞鈴弓箭步': 'Dumbbell Lunges',
+  '保加利亞分腿蹲': 'Barbell Bulgarian Split Squat', '深蹲': 'Bodyweight Squat',
+  '弓箭步': 'Lunge', '站姿小腿提踵': 'Standing Calf Raise',
+  // Glutes
+  '槓鈴臀推': 'Barbell Hip Thrust', '啞鈴臀推': 'Hip Thrust',
+  '繩索後踢': 'Cable Hip Extension', '髖外展機': 'Hip Abduction',
+  '相撲深蹲': 'Sumo Squat', '驢子踢腿': 'Donkey Kick',
+  '消防栓式': 'Fire Hydrant', '蚌殼式': 'Clamshell',
+  '臀橋': 'Glute Bridge', '單腳臀橋': 'Single-Leg Glute Bridge',
+  // Abs
+  '捲腹': 'Crunch', '平板支撐': 'Plank',
+  '懸垂抬腿': 'Hanging Leg Raise', '俄羅斯轉體': 'Russian Twist',
+  '山式爬行': 'Mountain Climbers',
+};
 
 const EX_DB_URL = 'https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/dist/exercises.json';
 const EX_IMG_BASE = 'https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/';
-const EX_CACHE_KEY = 'ex_db_v1';
+const EX_CACHE_KEY = 'ex_db_v2';
 
 type ExRow = { name: string; images: string[] };
 
-async function findExerciseImages(englishName: string): Promise<string[]> {
+async function findExerciseImages(chineseName: string): Promise<string[]> {
+  const englishName = ZH_TO_EN[chineseName] ?? '';
+  if (!englishName) return [];
+
   let db: ExRow[] = [];
   try {
     const raw = localStorage.getItem(EX_CACHE_KEY);
     if (raw) {
       const { ts, data } = JSON.parse(raw);
-      if (Date.now() - ts < 7 * 86400_000) db = data;
+      if (Date.now() - ts < 7 * 24 * 60 * 60 * 1000) db = data;
     }
   } catch {}
 
@@ -491,20 +537,18 @@ async function findExerciseImages(englishName: string): Promise<string[]> {
     } catch { return []; }
   }
 
-  const q = englishName.toLowerCase().trim();
+  const q = englishName.toLowerCase();
   const score = (e: ExRow) => {
     const n = e.name.toLowerCase();
-    if (n === q) return 3;
-    if (n.includes(q) || q.includes(n)) return 2;
-    const words = q.split(' ');
-    const matched = words.filter(w => w.length > 3 && n.includes(w)).length;
-    return matched / words.length;
+    if (n === q) return 10;
+    const words = q.split(' ').filter(w => w.length > 2);
+    return words.filter(w => n.includes(w)).length / words.length;
   };
   const best = db.reduce<{ e: ExRow | null; s: number }>((acc, e) => {
     const s = score(e); return s > acc.s ? { e, s } : acc;
   }, { e: null, s: 0 });
 
-  if (!best.e || best.s < 0.3) return [];
+  if (!best.e || best.s < 0.5) return [];
   return (best.e.images ?? []).slice(0, 2).map(img => `${EX_IMG_BASE}${img}`);
 }
 
@@ -526,9 +570,7 @@ function ExerciseTutorial({ name, onClose }: { name: string; onClose: () => void
       .then(data => {
         if (data.error) throw new Error(data.error);
         setGuide(data);
-        if (data.englishName) {
-          findExerciseImages(data.englishName).then(imgs => setImages(imgs));
-        }
+        findExerciseImages(name).then(imgs => setImages(imgs));
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
@@ -596,7 +638,7 @@ function ExerciseTutorial({ name, onClose }: { name: string; onClose: () => void
                   {images.map((src, i) => (
                     <div key={i} style={{ position: 'relative', background: '#111' }}>
                       <img src={src} alt={`${name} step ${i + 1}`}
-                        style={{ width: '100%', display: 'block', aspectRatio: '1', objectFit: 'cover' }}
+                        style={{ width: '100%', display: 'block', aspectRatio: '1', objectFit: 'cover', filter: 'grayscale(100%) contrast(1.1)' }}
                       />
                       <div style={{ position: 'absolute', top: 6, left: 6, width: 20, height: 20, borderRadius: '50%', background: 'var(--accent)', color: '#fff', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {i + 1}
