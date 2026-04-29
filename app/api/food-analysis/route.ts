@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const VISION_MODELS = [
-  'llama-3.2-11b-vision-preview',
-  'llama-3.2-90b-vision-preview',
+  'llama-4-scout-17b-16e-instruct',
+  'llama-4-maverick-17b-128e-instruct',
+  'meta-llama/llama-4-scout-17b-16e-instruct',
 ];
 
 const PROMPT_IMAGE = `你是一位熟悉台灣飲食的營養師。請判斷這張照片是「營養標示」還是「食物」，只輸出 JSON，不要其他文字：
@@ -79,6 +80,8 @@ export async function POST(req: NextRequest) {
           break;
         } catch (e) {
           lastErr = e instanceof Error ? e.message : String(e);
+          const isSkippable = lastErr.includes('404') || lastErr.includes('decommissioned') || lastErr.includes('not found');
+          if (!isSkippable) throw e;
         }
       }
       if (!text) throw new Error(lastErr);
