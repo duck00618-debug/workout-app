@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
           },
           {
             role: 'user',
-            content: `為「${name}」生成教學，輸出以下格式的 JSON：{"muscles":["肌群1","肌群2"],"steps":["步驟1","步驟2","步驟3","步驟4","步驟5"],"tips":["提示1","提示2"],"mistakes":["錯誤1","錯誤2"]}。繁體中文，步驟具體詳細。`,
+            content: `為「${name}」生成教學，輸出以下格式的 JSON：{"englishName":"Standard English exercise name","muscles":["肌群1","肌群2"],"steps":["步驟1","步驟2","步驟3","步驟4","步驟5"],"tips":["提示1","提示2"],"mistakes":["錯誤1","錯誤2"]}。繁體中文步驟，englishName 用標準英文健身術語。`,
           },
         ],
       }),

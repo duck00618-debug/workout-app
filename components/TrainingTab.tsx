@@ -464,12 +464,56 @@ function WorkoutView({ log, plan, dayIdx, onFinish, onTutorial }: { log: Workout
 }
 
 // ── Exercise Tutorial ─────────────────────────────────────────
-type GuideData = { muscles: string[]; steps: string[]; tips: string[]; mistakes: string[] };
+type GuideData = { englishName?: string; muscles: string[]; steps: string[]; tips: string[]; mistakes: string[] };
+
+const EX_DB_URL = 'https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/dist/exercises.json';
+const EX_IMG_BASE = 'https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/';
+const EX_CACHE_KEY = 'ex_db_v1';
+
+type ExRow = { name: string; images: string[] };
+
+async function findExerciseImages(englishName: string): Promise<string[]> {
+  let db: ExRow[] = [];
+  try {
+    const raw = localStorage.getItem(EX_CACHE_KEY);
+    if (raw) {
+      const { ts, data } = JSON.parse(raw);
+      if (Date.now() - ts < 7 * 86400_000) db = data;
+    }
+  } catch {}
+
+  if (!db.length) {
+    try {
+      const res = await fetch(EX_DB_URL);
+      const full: { name: string; images: string[] }[] = await res.json();
+      db = full.map(e => ({ name: e.name, images: e.images ?? [] }));
+      try { localStorage.setItem(EX_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: db })); } catch {}
+    } catch { return []; }
+  }
+
+  const q = englishName.toLowerCase().trim();
+  const score = (e: ExRow) => {
+    const n = e.name.toLowerCase();
+    if (n === q) return 3;
+    if (n.includes(q) || q.includes(n)) return 2;
+    const words = q.split(' ');
+    const matched = words.filter(w => w.length > 3 && n.includes(w)).length;
+    return matched / words.length;
+  };
+  const best = db.reduce<{ e: ExRow | null; s: number }>((acc, e) => {
+    const s = score(e); return s > acc.s ? { e, s } : acc;
+  }, { e: null, s: 0 });
+
+  if (!best.e || best.s < 0.3) return [];
+  return (best.e.images ?? []).slice(0, 2).map(img => `${EX_IMG_BASE}${img}`);
+}
 
 function ExerciseTutorial({ name, onClose }: { name: string; onClose: () => void }) {
   const [guide, setGuide] = useState<GuideData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [images, setImages] = useState<string[]>([]);
+  const [imgIdx, setImgIdx] = useState(0);
 
   useEffect(() => {
     setLoading(true);
@@ -483,10 +527,19 @@ function ExerciseTutorial({ name, onClose }: { name: string; onClose: () => void
       .then(data => {
         if (data.error) throw new Error(data.error);
         setGuide(data);
+        if (data.englishName) {
+          findExerciseImages(data.englishName).then(imgs => setImages(imgs));
+        }
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, [name]);
+
+  useEffect(() => {
+    if (images.length < 2) return;
+    const id = setInterval(() => setImgIdx(i => (i + 1) % images.length), 900);
+    return () => clearInterval(id);
+  }, [images]);
 
   const Section = ({ emoji, title, items, color }: { emoji: string; title: string; items: string[]; color: string }) => (
     <div style={{ marginBottom: 20 }}>
@@ -542,6 +595,18 @@ function ExerciseTutorial({ name, onClose }: { name: string; onClose: () => void
 
         {guide && !loading && (
           <div className="animate-fadein">
+            {/* Animated exercise images */}
+            {images.length > 0 && (
+              <div style={{ marginBottom: 20, borderRadius: 14, overflow: 'hidden', position: 'relative', aspectRatio: '3/2', background: '#111' }}>
+                {images.map((src, i) => (
+                  <img key={i} src={src} alt={name}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: imgIdx === i ? 1 : 0, transition: 'opacity 0.35s ease' }}
+                  />
+                ))}
+                <div style={{ position: 'absolute', bottom: 8, right: 10, fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>free-exercise-db · MIT</div>
+              </div>
+            )}
+
             {/* Muscle tags */}
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
