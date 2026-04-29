@@ -176,11 +176,12 @@ function CreatePlanView({ user, onCreated, onBack }: { user: UserProfile | null;
   const [includeCardio, setIncludeCardio] = useState(false);
 
   const splits = [
-    { v: 'fullBody',   l: '全身訓練',     d: '每次練全身，每週 3 次 — 新手首選' },
-    { v: 'upperLower', l: '上下半身分化', d: '上半身 / 下半身交替，每週 4 次' },
-    { v: 'PPL',        l: '推拉腿（PPL）', d: '推 / 拉 / 腿三天循環，每週 6 次' },
-    { v: 'chestBack',  l: '胸背腿',       d: '傳統三分化，每週 5–6 次' },
-    { v: 'bro',        l: '部位分化',     d: '每天專攻一個部位，每週 5–6 次' },
+    { v: 'fullBody',   l: '全身訓練',     d: '每次練全身，每週 3 次 — 新手首選',       badge: '' },
+    { v: 'gluteLeg',   l: '臀腿強化',     d: '臀腿為主 + 上半身輔助，每週 4–5 次',    badge: '女性推薦' },
+    { v: 'upperLower', l: '上下半身分化', d: '上半身 / 下半身交替，每週 4 次',         badge: '' },
+    { v: 'PPL',        l: '推拉腿（PPL）', d: '推 / 拉 / 腿三天循環，每週 6 次',      badge: '' },
+    { v: 'chestBack',  l: '胸背腿',       d: '傳統三分化，每週 5–6 次',               badge: '' },
+    { v: 'bro',        l: '部位分化',     d: '每天專攻一個部位，每週 5–6 次',          badge: '' },
   ];
 
   const goals = [
@@ -220,9 +221,10 @@ function CreatePlanView({ user, onCreated, onBack }: { user: UserProfile | null;
             {splits.map(s => (
               <button key={s.v} onClick={() => setSplit(s.v)}
                 style={{ padding: '12px 14px', borderRadius: 12, border: `2px solid ${split === s.v ? 'var(--accent)' : 'var(--border)'}`, background: split === s.v ? 'rgba(108,99,255,0.15)' : 'var(--surface)', textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s' }}>
-                <div style={{ fontWeight: 700, color: split === s.v ? 'var(--accent)' : 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontWeight: 700, color: split === s.v ? 'var(--accent)' : 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   {s.l}
                   {s.v === 'fullBody' && <span className="badge" style={{ background: 'rgba(0,212,170,0.15)', color: 'var(--green)', fontSize: 10 }}>新手推薦</span>}
+                  {s.badge && <span className="badge" style={{ background: 'rgba(255,101,132,0.15)', color: '#ff6584', fontSize: 10 }}>{s.badge}</span>}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{s.d}</div>
               </button>

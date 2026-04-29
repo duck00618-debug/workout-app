@@ -9,7 +9,7 @@ import { FOOD_DB, searchFood, CATEGORIES, getFoodByCategory, FoodItem } from '@/
 import { Plus, Trash2, Search, Apple, X, ChevronDown, Camera, RefreshCw } from 'lucide-react';
 
 type Panel = 'log' | 'search' | 'manual' | 'photo';
-type PhotoState = 'idle' | 'analyzing' | 'result' | 'error';
+type PhotoState = 'idle' | 'analyzing' | 'result' | 'error' | 'nokey';
 
 export default function DietTab() {
   const [macros, setMacros] = useState<MacroTargets | null>(null);
@@ -121,8 +121,9 @@ export default function DietTab() {
           time: new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }),
         });
         setPhotoState('result');
-      } catch {
-        setPhotoState('error');
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : '';
+        setPhotoState(msg.includes('No API key') ? 'nokey' : 'error');
       }
     };
     reader.readAsDataURL(file);
@@ -318,6 +319,18 @@ export default function DietTab() {
               <div style={{ fontSize: 28, marginBottom: 8 }}>🔍</div>
               <p style={{ fontWeight: 600, marginBottom: 4 }}>AI 辨識中...</p>
               <p style={{ fontSize: 13, color: 'var(--muted)' }}>正在分析食物熱量</p>
+            </div>
+          )}
+
+          {photoState === 'nokey' && (
+            <div className="card animate-fadein" style={{ padding: '20px' }}>
+              <p style={{ fontWeight: 700, marginBottom: 8, color: 'var(--accent2)' }}>功能尚未啟用</p>
+              <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
+                請到 Vercel 後台設定 <code style={{ background: 'var(--surface2)', padding: '2px 6px', borderRadius: 4 }}>ANTHROPIC_API_KEY</code> 環境變數後重新部署。
+              </p>
+              <button className="btn btn-ghost" onClick={resetPhoto} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <RefreshCw size={15} /> 返回
+              </button>
             </div>
           )}
 

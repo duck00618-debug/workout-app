@@ -27,6 +27,18 @@ const schemes: Record<Goal, Record<Level, SetScheme>> = {
 interface ExDef { name: string; group: string; note?: string; equip: 'gym' | 'db' | 'bw' }
 
 const DB: Record<string, ExDef[]> = {
+  glutes: [
+    { name: '槓鈴臀推',     group: '臀大肌',  equip: 'gym', note: '肩膀靠在椅子上，頂點收緊臀部停頓 1 秒' },
+    { name: '啞鈴臀推',     group: '臀大肌',  equip: 'db',  note: '感受臀部在頂點充分收縮' },
+    { name: '繩索後踢',     group: '臀大肌',  equip: 'gym', note: '腳後踢到最高點時停頓收緊臀部' },
+    { name: '髖外展機',     group: '臀中肌',  equip: 'gym' },
+    { name: '相撲深蹲',     group: '臀大肌/大腿內側', equip: 'db', note: '腳大幅外張，下蹲感受臀部張力' },
+    { name: '驢子踢腿',     group: '臀大肌',  equip: 'bw',  note: '核心收緊，腳跟朝天花板踢，頂點停頓' },
+    { name: '消防栓式',     group: '臀中肌',  equip: 'bw',  note: '側向抬腿，訓練臀部外展肌群' },
+    { name: '蚌殼式',       group: '臀中肌',  equip: 'bw',  note: '側躺膝蓋打開，用臀中肌帶動而不是腰' },
+    { name: '臀橋',         group: '臀大肌',  equip: 'bw',  note: '頂點夾緊臀部停頓 2 秒，感受臀部發力' },
+    { name: '單腳臀橋',     group: '臀大肌',  equip: 'bw',  note: '單腳版本增加難度，注意骨盆水平' },
+  ],
   chest: [
     { name: '槓鈴臥推',       group: '胸大肌',  equip: 'gym', note: '新手注意：肩胛骨夾緊，手肘不要完全外張' },
     { name: '啞鈴臥推',       group: '胸大肌',  equip: 'db',  note: '動作全程保持核心收緊' },
@@ -194,6 +206,26 @@ export function generatePlan(
       mk('拉（背 + 二頭）', ['back', 'biceps']),
       mk('腿 + 核心', ['legs', 'abs']),
     ];
+  } else if (split === 'gluteLeg') {
+    days = isBeg
+      ? [
+          mk('臀腿（臀部 + 腿後側）', ['glutes', 'legs']),
+          rest,
+          mk('上半身', ['chest', 'back', 'shoulder']),
+          rest,
+          mk('臀腿（股四頭 + 臀部）', ['legs', 'glutes', 'abs']),
+          rest,
+          rest,
+        ]
+      : [
+          mk('臀腿A（臀部 + 腿後側）', ['glutes', 'legs']),
+          mk('上半身A（推）', ['chest', 'shoulder', 'triceps']),
+          rest,
+          mk('臀腿B（股四頭 + 臀部）', ['legs', 'glutes', 'abs']),
+          mk('上半身B（拉）', ['back', 'biceps']),
+          rest,
+          rest,
+        ];
   } else if (split === 'chestBack') {
     days = [
       mk('胸 + 三頭', ['chest', 'triceps']),
@@ -220,7 +252,7 @@ export function generatePlan(
 
   const splitLabel: Record<string, string> = {
     PPL: 'PPL', upperLower: '上下分化', fullBody: '全身訓練',
-    chestBack: '胸背腿', bro: '部位分化',
+    chestBack: '胸背腿', bro: '部位分化', gluteLeg: '臀腿強化',
   };
 
   return {

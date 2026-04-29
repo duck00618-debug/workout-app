@@ -42,7 +42,17 @@ export async function POST(req: NextRequest) {
           role: 'user',
           content: [
             { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data } },
-            { type: 'text', text: `你是一位營養師，請分析這張食物照片，估算營養資訊，用 JSON 格式回覆（只輸出 JSON，不要其他文字）：\n${JSON_SCHEMA}\n\n${JSON_NOTES}` },
+            { type: 'text', text: `你是一位熟悉台灣飲食的營養師。請仔細觀察這張照片中的食物，辨識出主要食物名稱，並估算熱量與營養素。
+
+用 JSON 格式回覆（只輸出 JSON，不要任何其他文字或說明）：
+${JSON_SCHEMA}
+
+重要規則：
+1. name 請用繁體中文，簡短描述（例如：滷肉飯、雞腿便當、珍珠奶茶）
+2. amount 描述份量（例如：1碗、1個、500ml）
+3. 以台灣一般餐廳或便利商店的正常份量估算
+4. 若照片模糊或看不清楚，仍需盡力估算，不要拒絕回答
+5. 數字取整數，確保 protein×4 + carbs×4 + fat×9 ≈ calories` },
           ],
         }],
       });
