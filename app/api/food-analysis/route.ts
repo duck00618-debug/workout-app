@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const BASE = 'https://generativelanguage.googleapis.com';
 const MODELS = [
-  'gemini-1.5-flash-latest',
-  'gemini-1.5-flash-002',
-  'gemini-1.5-flash-8b-latest',
-  'gemini-1.5-flash',
-  'gemini-1.5-flash-001',
+  'gemini-2.0-flash-lite',
+  'gemini-2.0-flash-lite-001',
+  'gemini-flash-lite-latest',
+  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash',
 ];
 
 async function callGemini(key: string, model: string, parts: unknown[]): Promise<string> {
