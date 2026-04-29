@@ -9,7 +9,7 @@ import { FOOD_DB, searchFood, CATEGORIES, getFoodByCategory, FoodItem } from '@/
 import { Plus, Trash2, Search, Apple, X, ChevronDown, Camera, RefreshCw } from 'lucide-react';
 
 type Panel = 'log' | 'search' | 'manual' | 'photo';
-type PhotoState = 'idle' | 'analyzing' | 'result' | 'error' | 'nokey';
+type PhotoState = 'idle' | 'analyzing' | 'result' | 'label' | 'error' | 'nokey';
 
 export default function DietTab() {
   const [macros, setMacros] = useState<MacroTargets | null>(null);
@@ -22,6 +22,8 @@ export default function DietTab() {
   const [photoState, setPhotoState] = useState<PhotoState>('idle');
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoResult, setPhotoResult] = useState<FoodEntry | null>(null);
+  const [labelServings, setLabelServings] = useState(1);
+  const [labelBase, setLabelBase] = useState<{ name: string; servingSize: string; calories: number; protein: number; carbs: number; fat: number } | null>(null);
   const goalLabel = { bulk: '增肌', cut: '減脂', maintain: '維持' };
 
   const reload = () => {
@@ -110,17 +112,23 @@ export default function DietTab() {
         const data = await res.json();
         if (data.error) throw new Error(data.error);
 
-        setPhotoResult({
-          id: `food_${Date.now()}`,
-          name: data.name,
-          amount: data.amount,
-          calories: data.calories,
-          protein: data.protein,
-          carbs: data.carbs,
-          fat: data.fat,
-          time: new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }),
-        });
-        setPhotoState('result');
+        if (data.type === 'label') {
+          setLabelBase({ name: data.name, servingSize: data.servingSize, calories: data.calories, protein: data.protein, carbs: data.carbs, fat: data.fat });
+          setLabelServings(1);
+          setPhotoState('label');
+        } else {
+          setPhotoResult({
+            id: `food_${Date.now()}`,
+            name: data.name,
+            amount: data.amount ?? '1份',
+            calories: data.calories,
+            protein: data.protein,
+            carbs: data.carbs,
+            fat: data.fat,
+            time: new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }),
+          });
+          setPhotoState('result');
+        }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : '';
         setPhotoState(msg.includes('No API key') ? 'nokey' : 'error');
@@ -139,10 +147,30 @@ export default function DietTab() {
     setPhotoResult(null);
   };
 
+  const confirmLabelEntry = () => {
+    if (!labelBase) return;
+    const s = Math.max(0.5, labelServings);
+    addFoodEntry(today(), {
+      id: `food_${Date.now()}`,
+      name: labelBase.name,
+      amount: `${s} 份 (${labelBase.servingSize}/份)`,
+      calories: Math.round(labelBase.calories * s),
+      protein: Math.round(labelBase.protein * s),
+      carbs: Math.round(labelBase.carbs * s),
+      fat: Math.round(labelBase.fat * s),
+      time: new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }),
+    });
+    reload();
+    setPanel('log');
+    resetPhoto();
+  };
+
   const resetPhoto = () => {
     setPhotoState('idle');
     setPhotoPreview(null);
     setPhotoResult(null);
+    setLabelBase(null);
+    setLabelServings(1);
   };
 
   const totals = entries.reduce(
@@ -340,6 +368,39 @@ export default function DietTab() {
               <button className="btn btn-primary" onClick={resetPhoto} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <RefreshCw size={15} /> 重新拍照
               </button>
+            </div>
+          )}
+
+          {photoState === 'label' && labelBase && (
+            <div className="card animate-fadein">
+              <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, marginBottom: 6 }}>📋 偵測到營養標示</div>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 2 }}>{labelBase.name}</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>每份：{labelBase.servingSize}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8, textAlign: 'center', marginBottom: 16, padding: '10px', background: 'var(--surface2)', borderRadius: 10 }}>
+                <TotalItem label="熱量/份" value={`${labelBase.calories}`} unit="kcal" />
+                <TotalItem label="蛋白質" value={`${labelBase.protein}`} unit="g" />
+                <TotalItem label="碳水" value={`${labelBase.carbs}`} unit="g" />
+                <TotalItem label="脂肪" value={`${labelBase.fat}`} unit="g" />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 13, color: 'var(--muted)', display: 'block', marginBottom: 8 }}>你吃了幾份？</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <button onClick={() => setLabelServings(s => Math.max(0.5, +(s - 0.5).toFixed(1)))}
+                    style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                  <span style={{ fontWeight: 700, fontSize: 20, minWidth: 40, textAlign: 'center' }}>{labelServings}</span>
+                  <button onClick={() => setLabelServings(s => +(s + 0.5).toFixed(1))}
+                    style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>＋</button>
+                  <span style={{ fontSize: 13, color: 'var(--muted)' }}>= {Math.round(labelBase.calories * labelServings)} kcal</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-primary" onClick={confirmLabelEntry} style={{ flex: 1 }}>
+                  <Plus size={15} /> 加入記錄
+                </button>
+                <button className="btn btn-ghost" onClick={resetPhoto} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <RefreshCw size={15} /> 重拍
+                </button>
+              </div>
             </div>
           )}
 
