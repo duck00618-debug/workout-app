@@ -11,16 +11,16 @@ export async function POST(req: NextRequest) {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
       body: JSON.stringify({
         model: 'llama-3.1-8b-instant',
-        max_tokens: 800,
+        max_tokens: 1200,
         temperature: 0.3,
         messages: [
           {
             role: 'system',
-            content: '你是一位健身教練。只輸出 JSON，不要任何其他文字、不要 markdown、不要解釋。',
+            content: '你是健身教練。只輸出純 JSON，禁止任何其他文字或 markdown。每個字串控制在 30 字以內。',
           },
           {
             role: 'user',
-            content: `為「${name}」生成教學，輸出以下格式的 JSON：{"muscles":["肌群1","肌群2"],"steps":["步驟1","步驟2","步驟3","步驟4","步驟5"],"tips":["提示1","提示2"],"mistakes":["錯誤1","錯誤2"]}。繁體中文，步驟具體詳細。`,
+            content: `「${name}」的教學 JSON：{"muscles":["肌群1","肌群2"],"steps":["步驟1","步驟2","步驟3","步驟4"],"tips":["提示1","提示2"],"mistakes":["錯誤1","錯誤2"]}。繁體中文，簡潔。`,
           },
         ],
       }),
