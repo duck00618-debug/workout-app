@@ -529,8 +529,9 @@ function ExerciseTutorial({ name, onClose }: { name: string; onClose: () => void
         )}
 
         {error && (
-          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-            <p style={{ color: 'var(--muted)', marginBottom: 16 }}>載入失敗，請再試一次</p>
+          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <p style={{ color: 'var(--muted)', marginBottom: 8 }}>載入失敗，請再試一次</p>
+            <p style={{ color: '#ff6584', fontSize: 12, marginBottom: 16, wordBreak: 'break-all' }}>{error}</p>
             <button className="btn btn-primary" onClick={() => {
               setLoading(true); setError('');
               fetch('/api/exercise-guide', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) })
