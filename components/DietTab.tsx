@@ -24,6 +24,7 @@ export default function DietTab() {
   const [photoResult, setPhotoResult] = useState<FoodEntry | null>(null);
   const [labelServings, setLabelServings] = useState(1);
   const [labelBase, setLabelBase] = useState<{ name: string; servingSize: string; calories: number; protein: number; carbs: number; fat: number } | null>(null);
+  const [photoErrorMsg, setPhotoErrorMsg] = useState('');
   const goalLabel = { bulk: '增肌', cut: '減脂', maintain: '維持' };
 
   const reload = () => {
@@ -130,7 +131,8 @@ export default function DietTab() {
           setPhotoState('result');
         }
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : '';
+        const msg = err instanceof Error ? err.message : String(err);
+        setPhotoErrorMsg(msg);
         setPhotoState(msg.includes('No API key') ? 'nokey' : 'error');
       }
     };
@@ -363,8 +365,11 @@ export default function DietTab() {
           )}
 
           {photoState === 'error' && (
-            <div className="card animate-fadein" style={{ textAlign: 'center', padding: '24px' }}>
-              <p style={{ color: 'var(--accent2)', fontWeight: 600, marginBottom: 12 }}>辨識失敗，請再試一次</p>
+            <div className="card animate-fadein" style={{ padding: '20px' }}>
+              <p style={{ color: 'var(--accent2)', fontWeight: 600, marginBottom: 8 }}>辨識失敗</p>
+              {photoErrorMsg && (
+                <p style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12, wordBreak: 'break-all', background: 'var(--surface2)', padding: '8px', borderRadius: 8 }}>{photoErrorMsg}</p>
+              )}
               <button className="btn btn-primary" onClick={resetPhoto} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <RefreshCw size={15} /> 重新拍照
               </button>
