@@ -513,7 +513,6 @@ function ExerciseTutorial({ name, onClose }: { name: string; onClose: () => void
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [images, setImages] = useState<string[]>([]);
-  const [imgIdx, setImgIdx] = useState(0);
 
   useEffect(() => {
     setLoading(true);
@@ -535,11 +534,6 @@ function ExerciseTutorial({ name, onClose }: { name: string; onClose: () => void
       .finally(() => setLoading(false));
   }, [name]);
 
-  useEffect(() => {
-    if (images.length < 2) return;
-    const id = setInterval(() => setImgIdx(i => (i + 1) % images.length), 900);
-    return () => clearInterval(id);
-  }, [images]);
 
   const Section = ({ emoji, title, items, color }: { emoji: string; title: string; items: string[]; color: string }) => (
     <div style={{ marginBottom: 20 }}>
@@ -595,15 +589,22 @@ function ExerciseTutorial({ name, onClose }: { name: string; onClose: () => void
 
         {guide && !loading && (
           <div className="animate-fadein">
-            {/* Animated exercise images */}
+            {/* Comic-style exercise images */}
             {images.length > 0 && (
-              <div style={{ marginBottom: 20, borderRadius: 14, overflow: 'hidden', position: 'relative', aspectRatio: '3/2', background: '#111' }}>
-                {images.map((src, i) => (
-                  <img key={i} src={src} alt={name}
-                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: imgIdx === i ? 1 : 0, transition: 'opacity 0.35s ease' }}
-                  />
-                ))}
-                <div style={{ position: 'absolute', bottom: 8, right: 10, fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>free-exercise-db · MIT</div>
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${images.length}, 1fr)`, gap: 6, borderRadius: 14, overflow: 'hidden', border: '2px solid var(--border)' }}>
+                  {images.map((src, i) => (
+                    <div key={i} style={{ position: 'relative', background: '#111' }}>
+                      <img src={src} alt={`${name} step ${i + 1}`}
+                        style={{ width: '100%', display: 'block', aspectRatio: '1', objectFit: 'cover' }}
+                      />
+                      <div style={{ position: 'absolute', top: 6, left: 6, width: 20, height: 20, borderRadius: '50%', background: 'var(--accent)', color: '#fff', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {i + 1}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--muted)', textAlign: 'right', marginTop: 4 }}>free-exercise-db · MIT</div>
               </div>
             )}
 
